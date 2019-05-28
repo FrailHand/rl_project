@@ -45,7 +45,10 @@ Its structure is the following:
 
 
 All the code in this repository is the work of the following authors:
+
 *François Marelli*
+
 *Angel Martínez-González*
+
 *Bastian Schnell*
 
