@@ -9,7 +9,7 @@ import torch
 from functools import partial
 from torchvision.transforms import transforms
 
-from plotting.env_plotter import EnvPlotter
+from src.plotting.env_plotter import EnvPlotter
 from src.agents.drqn_agent import DRQNAgent
 from src.behaviours.exploration_behaviour import ExplorationBehaviour
 from src.behaviours.running_behaviour import RunningBehaviour
