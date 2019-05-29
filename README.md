@@ -15,6 +15,12 @@ The implemented algorithms are:
 - Deep Q-Network with Variational Auto-Encoder
 
 
+All the code in this repository is the work of the following authors:
+
+*François Marelli, Angel Martínez-González, Bastian Schnell*
+
+All of the authors contributed equally to this work.
+
 
 ## environment
 
@@ -41,11 +47,4 @@ Its structure is the following:
 - Plotting: contains the class used to plot the agent behaviour
 - Testing: contains the scripts used to test trained agents
 - Training: contains the scripts used to train the different models
-
-
-
-All the code in this repository is the work of the following authors:
-*François Marelli*
-*Angel Martínez-González*
-*Bastian Schnell*
 
