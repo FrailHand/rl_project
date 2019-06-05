@@ -57,7 +57,7 @@ class HellboyBaseBehaviour(vgd.Behaviour):
 
     @property
     def action_size(self):
-        return len(self._available_buttons_binary)
+        return len(self._available_buttons_binary) + 1
 
     # translate a gym action into a vizdoom compatible one
     def parse_action(self, action):
@@ -111,8 +111,6 @@ class HellboyBaseBehaviour(vgd.Behaviour):
             self.ammo = ammo
             return 0
         delta = ammo - self.ammo
-        #        if delta > 0:
-        #            print('+++++++++++++++++++++++++++++++++')
         self.ammo = ammo
         return delta
 

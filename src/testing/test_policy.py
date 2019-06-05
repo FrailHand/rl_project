@@ -10,6 +10,10 @@ from functools import partial
 from torchvision.transforms import transforms
 
 from src.plotting.env_plotter import EnvPlotter
+import sys
+#sys.path.append('/idiap/temp/amartinez/src/hellboy/')
+#from plotting.env_plotter import EnvPlotter
+
 from src.agents.drqn_agent import DRQNAgent
 from src.behaviours.exploration_behaviour import ExplorationBehaviour
 from src.behaviours.running_behaviour import RunningBehaviour
@@ -24,8 +28,7 @@ device = torch.device(str_device)
 
 
 def test_policy(env, policy, num_episodes, timesteps_per_simulation, timesteps_per_episode=2100,
-                render_env=False):
-    save_path = './visualizations'
+                render_env=False, video_path='', histogram_counts=None):
     total_reward = 0
 
     for i_episode in range(num_episodes):
@@ -47,6 +50,9 @@ def test_policy(env, policy, num_episodes, timesteps_per_simulation, timesteps_p
 
             gym_action = policy.act(state, env.behaviour)
 
+            if histogram_counts is not None:
+                histogram_counts[gym_action]+=1
+
             # Execute action in emulator and observe new state and reward.
             for _ in range(timesteps_per_simulation):
                 next_state, reward, done, _ = env.step(gym_action)
@@ -58,12 +64,21 @@ def test_policy(env, policy, num_episodes, timesteps_per_simulation, timesteps_p
                 break
 
             if render_env and device.type == "cpu":
+                map_path=os.path.join(video_path, 'map_step_%d.jpg'%t) if video_path != '' else  ''
+                fps_path=os.path.join(video_path, 'fps_step_%d.jpg'%t) if video_path != '' else  ''
                 plotter.update()
-                plotter.show()
+                plotter.show()# path_to_save=map_path)
                 if hasattr(env.behaviour, "render_exploration_map") and callable(
                         env.behaviour.render_exploration_map):
-                    env.behaviour.render_exploration_map(save_path)
+                    env.behaviour.render_exploration_map(map_path)
                 env.render()
+                ### hack to save images from buffer
+                #img= env.game.get_state().screen_buffer
+                #img = np.transpose(img, [1, 2, 0])
+                #img= cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                #cv2.imshow('testing buffer', img)
+                #cv2.imwrite(fps_path, img)
+                
 
             state = next_state
 
@@ -193,38 +208,66 @@ def validate_single_policy():
     parser.add_argument('--is_rnn', action='store_true')
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--z_dimension', type=int, default=128)
+    parser.add_argument('--video_path', type=str, default='')
+    parser.add_argument('--is_running', action='store_true')
 
     args = parser.parse_args()
 
     #    if args.path is not None:
     #        sys.path.append(args.path)
 
-    behaviour, env = get_env_behaviour(map_index=args.map_index, do_running=True)
+    behaviour, env = get_env_behaviour(map_index=args.map_index, do_running=args.is_running)
     timesteps_per_simulation = 5
     action_size = behaviour.action_size
     # epsilon = 0.2
 
+    histogram=np.zeros((action_size+1),dtype=np.float32)
     # Test trained DQN.
     # policy= get_policy_(args.out_dir, args.model_name)
     policy = get_policy(args, action_size, z_dimension=args.z_dimension)
 
+    our_maps = ["map01", "map02", "map03", "map04", "map05"]
+
+    if args.video_path != '':
+        policy_path=os.path.join(args.video_path,
+                             "running" if args.is_running else "exploration",
+                             our_maps[args.map_index],
+                             "DQN-VAE" if args.with_vae else "DQN")
+        os.makedirs(policy_path, exist_ok=True)
+    else:
+        policy_path=''
+
+
     ur = test_policy(env, policy, args.episodes,
                      timesteps_per_simulation,
                      timesteps_per_episode=2100,
-                     render_env=args.render)
+                     render_env=args.render, video_path= policy_path, histogram_counts=histogram)
 
+    np.savetxt(os.path.join(policy_path, 'action_histogram.txt'), histogram)
     # Test random policy.
     class Object(object):
         pass
+
+    if args.video_path != '':
+        policy_path=os.path.join(args.video_path, 
+                             "random", 
+                             "running" if args.is_running else "exploration",
+                             our_maps[args.map_index])
+        os.makedirs(policy_path, exist_ok=True)
+    else:
+        policy_path=''
+
 
     random_policy = Object()
     # random_policy.act = lambda state, behaviour: behaviour.sample_nonuniform()
     random_policy.act = lambda state, behaviour: behaviour.action_space.sample()
     policy = random_policy
 
+    histogram=np.zeros((action_size+1),dtype=np.float32)
     test_policy(env, policy, args.episodes, timesteps_per_simulation, timesteps_per_episode=2100,
-                render_env=args.render)
+                render_env=args.render, video_path=policy_path, histogram_counts=histogram)
 
+    np.savetxt(os.path.join(policy_path, 'action_histogram.txt'), histogram)
     # env.render()
     env.close()
 
@@ -255,6 +298,7 @@ def validate_multiple_policy():
     timesteps_per_simulation = 5
     action_size = behaviour.action_size
     # epsilon = 0.2
+
 
     avg_reward = []
     for f in selected_files:

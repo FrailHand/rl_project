@@ -74,9 +74,12 @@ class EnvPlotter:
         print('Saving gif to: {}'.format(gif_name))
         animate.save(gif_name, writer='imagemagick', fps=20)
 
-    def show(self, render=True):
+    def show(self, render=True, path_to_save=''):
         if render:
             self.render()
 
         cv2.imshow('Map', self.rendered[-1])
+        if path_to_save != '':
+            cv2.imwrite(path_to_save, self.rendered[-1])
+
         cv2.waitKey(1)
